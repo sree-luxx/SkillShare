@@ -1,0 +1,63 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #F84565;
+  --color-primary-dull: #D63854;
+}
+
+* {
+  font-family: "Outfit", sans-serif;
+}
+
+body {
+  background: linear-gradient(135deg, #ede9fe, #f5e8ff, #f3ecff);
+}
+
+.bg-secondary-panel {
+  background: linear-gradient(135deg, #fff0f4, #ffe6ec, #ffe9ef);
+  border-right: 1px solid #ffd2dd;
+}
+
+.btn-primary {
+  background: #f43f5e;
+  color: white;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0px 4px 10px rgba(244, 63, 94, 0.3);
+}
+
+.btn-primary:hover {
+  background: #e13354;
+}
+
+.toggle-checkbox {
+  width: 44px;
+  height: 22px;
+  appearance: none;
+  background: #d1d5db;
+  border-radius: 999px;
+  position: relative;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.toggle-checkbox:checked {
+  background: #6366f1;
+}
+
+.toggle-checkbox::after {
+  content: "";
+  width: 18px;
+  height: 18px;
+  background: white;
+  border-radius: 999px;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: 0.3s;
+}
+
+.toggle-checkbox:checked::after {
+  transform: translateX(22px);
+}
