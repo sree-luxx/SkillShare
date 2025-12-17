@@ -2,6 +2,7 @@ import { BellIcon, Sparkles, UserIcon, CheckCircle2, Megaphone } from "lucide-re
 import React, { useMemo, useState } from "react";
 import ProfilePopup from "./ProfilePopup";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 
 const Title = () => {
   const [showPopup, setShowPopup] = useState(false);
@@ -26,6 +27,7 @@ const Title = () => {
   ]);
 
   const unreadCount = useMemo(() => notifications.filter((n) => !n.read).length, [notifications]);
+  const { logout } = useAuth();
 
   const toggleNotifications = () => {
     setShowNotifications((prev) => !prev);
@@ -117,7 +119,10 @@ const Title = () => {
         {showPopup && (
           <ProfilePopup
             onEdit={() => navigate('/profile')}
-            onLogout={() => console.log("Logout clicked")}
+            onLogout={() => {
+              logout();
+              navigate('/login', { replace: true });
+            }}
           />
         )}
       </div>

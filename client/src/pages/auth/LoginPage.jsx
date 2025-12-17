@@ -6,26 +6,21 @@ import { useAuth } from "../../contexts/AuthContext";
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login, isAuthenticated } = useAuth();
+  const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-
-  if (isAuthenticated) {
-    navigate("/home", { replace: true });
-  }
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setIsLoading(true);
 
     const result = await login(email, password);
-    
-    if (result.success) {
-      navigate("/home", { replace: true });
-    }
-    
     setIsLoading(false);
+
+    if (result?.success) {
+      navigate("/home");
+    }
   };
 
   return (
