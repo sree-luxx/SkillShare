@@ -1,15 +1,19 @@
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { ArrowLeft, Sparkles } from "lucide-react";
+import { ArrowLeft, Sparkles, Eye, EyeOff } from "lucide-react";
 import ParticlesBackground from "../../utils/ParticlesBackground";
 import { useAuth } from "../../contexts/AuthContext";
 
-const Login = () => {
+const Signup = () => {
   const navigate = useNavigate();
-  const { login, isAuthenticated } = useAuth();
+  const { signup, isAuthenticated } = useAuth();
 
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -20,15 +24,21 @@ const Login = () => {
     }
   }, [isAuthenticated, navigate]);
 
-  const handleLogin = async (e) => {
+  const handleSignup = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
 
-    const result = await login(email, password);
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      setIsLoading(false);
+      return;
+    }
+
+    const result = await signup({ name, email, password });
 
     if (!result?.success) {
-      setError(result?.message || "Invalid email or password");
+      setError(result?.message || "Failed to create account");
       setIsLoading(false);
       return;
     }
@@ -59,8 +69,8 @@ const Login = () => {
           </div>
 
           <div className="text-center space-y-2">
-            <h1 className="text-3xl font-bold text-[#9a2240]">Welcome Back!</h1>
-            <p className="text-[#7a4450]">Log in to continue swapping skills.</p>
+            <h1 className="text-3xl font-bold text-[#9a2240]">Create Account</h1>
+            <p className="text-[#7a4450]">Sign Up to join swapping skills.</p>
           </div>
 
           {error && (
@@ -69,7 +79,22 @@ const Login = () => {
             </p>
           )}
 
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleSignup} className="space-y-4">
+            <div className="space-y-2">
+              <label htmlFor="name" className="text-sm font-medium text-[#7a4450]">
+                Full Name
+              </label>
+              <input
+                id="name"
+                type="text"
+                placeholder="John Doe"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                className="w-full rounded-2xl h-12 px-4 border border-white/80 bg-white/80 shadow-inner focus:border-[#f84565] outline-none transition"
+              />
+            </div>
+
             <div className="space-y-2">
               <label htmlFor="email" className="text-sm font-medium text-[#7a4450]">
                 Email
@@ -89,15 +114,48 @@ const Login = () => {
               <label htmlFor="password" className="text-sm font-medium text-[#7a4450]">
                 Password
               </label>
-              <input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="w-full rounded-2xl h-12 px-4 border border-white/80 bg-white/80 shadow-inner focus:border-[#f84565] outline-none transition"
-              />
+              <div className="relative">
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="w-full rounded-2xl h-12 px-4 border border-white/80 bg-white/80 shadow-inner focus:border-[#f84565] outline-none transition pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="confirmPassword" className="text-sm font-medium text-[#7a4450]">
+                Confirm Password
+              </label>
+              <div className="relative">
+                <input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  className="w-full rounded-2xl h-12 px-4 border border-white/80 bg-white/80 shadow-inner focus:border-[#f84565] outline-none transition pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
             </div>
 
             <button
@@ -105,17 +163,17 @@ const Login = () => {
               disabled={isLoading}
               className="w-full rounded-full h-12 bg-gradient-to-r from-[#f84565] via-[#fb923c] to-[#fb7185] text-white font-semibold hover:opacity-90 transition shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? "Logging in..." : "Log In"}
+              {isLoading ? "Creating Account..." : "Sign Up"}
             </button>
           </form>
 
           <p className="text-center text-sm text-[#7a4450]">
-            Don&apos;t have an account?{" "}
+            Already have an account?{" "}
             <button
-              onClick={() => navigate("/signup")}
+              onClick={() => navigate("/login")}
               className="text-[#c0264a] font-semibold hover:underline"
             >
-              Sign Up
+              Log In
             </button>
           </p>
         </div>
@@ -124,4 +182,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default Signup;

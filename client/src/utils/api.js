@@ -26,14 +26,20 @@ const apiRequest = async (endpoint, options = {}) => {
 
   try {
     const response = await fetch(url, config);
-    const data = await response.json();
-
+    
+    // Check if response is ok before trying to parse JSON
     if (!response.ok) {
-      throw new Error(data.message || 'Something went wrong');
+      const errorData = await response.json().catch(() => ({ message: 'Something went wrong' }));
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
     }
-
+    
+    const data = await response.json();
     return data;
   } catch (error) {
+    // Handle network errors (connection refused, etc.)
+    if (error.name === 'TypeError' && error.message.includes('fetch')) {
+      throw new Error('Cannot connect to server. Please make sure the backend server is running.');
+    }
     throw error;
   }
 };
@@ -55,6 +61,150 @@ export const authAPI = {
   },
 };
 
+// Profile API methods
+export const profileAPI = {
+  getProfile: async () => {
+    return apiRequest('/profile', {
+      method: 'GET',
+    });
+  },
+
+  updateProfile: async (profileData) => {
+    return apiRequest('/profile', {
+      method: 'PUT',
+      body: JSON.stringify(profileData),
+    });
+  },
+};
+
+// User API methods
+export const userAPI = {
+  getAllUsers: async () => {
+    return apiRequest('/users', {
+      method: 'GET',
+    });
+  },
+
+  getPeers: async () => {
+    return apiRequest('/users/peers', {
+      method: 'GET',
+    });
+  },
+};
+
+// Community API methods
+export const communityAPI = {
+  createCommunity: async (payload) => {
+    return apiRequest('/communities', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+  listCommunities: async () => {
+    return apiRequest('/communities', {
+      method: 'GET',
+    });
+  },
+  deleteCommunity: async (id) => {
+    return apiRequest(`/communities/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// Community Posts API
+export const communityPostsAPI = {
+  listByCommunity: async (name) => {
+    return apiRequest(`/community-posts/${encodeURIComponent(name)}`, {
+      method: 'GET',
+    });
+  },
+  create: async ({ communityName, content, imageUrl }) => {
+    return apiRequest('/community-posts', {
+      method: 'POST',
+      body: JSON.stringify({ communityName, content, imageUrl }),
+    });
+  },
+  react: async (id, type) => {
+    return apiRequest(`/community-posts/${id}/react`, {
+      method: 'PUT',
+      body: JSON.stringify({ type }),
+    });
+  },
+  comment: async (id, text) => {
+    return apiRequest(`/community-posts/${id}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ text }),
+    });
+  },
+};
+
+// Notification API methods
+export const notificationAPI = {
+  getNotifications: async () => {
+    return apiRequest('/notifications', {
+      method: 'GET',
+    });
+  },
+
+  markAsRead: async () => {
+    return apiRequest('/notifications/read', {
+      method: 'PUT',
+    });
+  },
+};
+
+// Message API methods
+export const messageAPI = {
+  getMessages: async (peerId) => {
+    return apiRequest(`/messages/${peerId}`, {
+      method: 'GET',
+    });
+  },
+
+  sendMessage: async (receiverId, text) => {
+    return apiRequest('/messages', {
+      method: 'POST',
+      body: JSON.stringify({ receiverId, text }),
+    });
+  },
+};
+
+// Request API methods
+export const requestAPI = {
+  sendRequest: async (toUserId, message) => {
+    return apiRequest('/requests', {
+      method: 'POST',
+      body: JSON.stringify({ toUserId, message }),
+    });
+  },
+
+  getRequestsMade: async () => {
+    return apiRequest('/requests/made', {
+      method: 'GET',
+    });
+  },
+
+  getRequestsReceived: async () => {
+    return apiRequest('/requests/received', {
+      method: 'GET',
+    });
+  },
+
+  updateRequestStatus: async (requestId, status) => {
+    return apiRequest(`/requests/${requestId}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    });
+  },
+
+  withdrawRequest: async (requestId) => {
+    return apiRequest(`/requests/${requestId}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
 // Generic API methods for authenticated requests
 export const api = {
   get: (endpoint) => apiRequest(endpoint, { method: 'GET' }),
@@ -72,5 +222,7 @@ export const api = {
 };
 
 export default api;
+
+
 
 

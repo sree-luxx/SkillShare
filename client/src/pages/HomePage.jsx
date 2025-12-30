@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import UserCard from "../components/UserCard";
@@ -6,85 +6,13 @@ import ProfilePanel from "../components/ProfilePanel";
 import RequestModal from "../components/RequestModel";
 import toast from 'react-hot-toast'
 import Title from "../components/Title";
-
-const mockUsers = [
-  {
-    id: 1,
-    name: "Alex Rivera",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Alex",
-    primarySkill: "Web Development",
-    rating: 4.8,
-    bio: "Full-stack developer passionate about teaching and learning new technologies.",
-    skillsHave: ["React", "Node.js", "TypeScript", "UI/UX"],
-    skillsWant: ["GraphQL", "Next.js"],
-    community: "IT",
-    availability: "Weekends, 2-5 PM"
-  },
-  {
-    id: 2,
-    name: "Maya Chen",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Maya",
-    primarySkill: "Graphic Design",
-    rating: 4.9,
-    bio: "Creative designer who loves teaching others the art of visual storytelling.",
-    skillsHave: ["Figma", "Illustration", "Branding", "Animation"],
-    skillsWant: ["3D Design", "Motion Graphics"],
-    community: "Design",
-    availability: "Mon-Fri, Evenings"
-  },
-  {
-    id: 3,
-    name: "Jordan Lee",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Jordan",
-    primarySkill: "Photography",
-    rating: 4.7,
-    bio: "Professional photographer specializing in portraits and landscapes.",
-    skillsHave: ["Portrait", "Lightroom", "Composition", "Studio Lighting"],
-    skillsWant: ["Video Editing", "Color Grading"],
-    community: "Design",
-    availability: "Flexible Schedule"
-  },
-  {
-    id: 4,
-    name: "Sam Taylor",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sam",
-    primarySkill: "Music Production",
-    rating: 4.6,
-    bio: "Producer and sound engineer helping others create their sound.",
-    skillsHave: ["Ableton", "Mixing", "Sound Design", "Music Theory"],
-    skillsWant: ["Mastering", "Live Performance"],
-    community: "Business",
-    availability: "Tue/Thu Evenings"
-  },
-  {
-    id: 5,
-    name: "Riley Morgan",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Riley",
-    primarySkill: "Writing",
-    rating: 4.8,
-    bio: "Author and content creator teaching storytelling and copywriting.",
-    skillsHave: ["Creative Writing", "Copywriting", "Editing", "SEO"],
-    skillsWant: ["Script Writing", "Podcasting"],
-    community: "Business",
-    availability: "Mon-Wed, Mornings"
-  },
-  {
-    id: 6,
-    name: "Casey Kim",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Casey",
-    primarySkill: "Video Editing",
-    rating: 4.9,
-    bio: "Video editor with 5+ years experience in narrative storytelling.",
-    skillsHave: ["Premiere Pro", "After Effects", "Color Grading", "Motion Graphics"],
-    skillsWant: ["Sound Design", "3D Animation"],
-    community: "IT",
-    availability: "Weekends"
-  }
-];
+import { userAPI, requestAPI } from "../utils/api";
 
 const HomePage = () => {
+  const [users, setUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [showRequestModal, setShowRequestModal] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   // Draft filters (user edits here)
   const [searchDraft, setSearchDraft] = useState("");
@@ -98,20 +26,47 @@ const HomePage = () => {
   const [skillHaveFilter, setSkillHaveFilter] = useState("All");
   const [skillWantFilter, setSkillWantFilter] = useState("All");
 
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const data = await userAPI.getAllUsers();
+        const mappedUsers = data.map(u => ({
+          ...u,
+          id: u._id,
+          avatar: u.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.name}`,
+          primarySkill: u.skillsHave?.[0] || "General",
+          rating: 5.0,
+          availability: "Flexible",
+          skillsHave: u.skillsHave || [],
+          skillsWant: u.skillsWant || [],
+          community: u.community || "General",
+        }));
+        setUsers(mappedUsers);
+      } catch (error) {
+        console.error("Failed to fetch users", error);
+        toast.error("Failed to load users");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUsers();
+  }, []);
 
-  const handleSendRequest = () => {
-    toast({
-      title: "Request Sent! 🎉",
-      description: `Your skill swap request has been sent to ${selectedUser?.name}`,
-    });
-    setShowRequestModal(false);
+  const handleSendRequest = async (message) => {
+    try {
+      await requestAPI.sendRequest(selectedUser.id, message);
+      toast.success(`Request sent to ${selectedUser?.name} 🎉`);
+      setShowRequestModal(false);
+    } catch (error) {
+      toast.error(error.message || "Failed to send request");
+    }
   };
 
-  const allCommunities = ["All", ...Array.from(new Set(mockUsers.map(u => u.community)))];
-  const allSkillsHave = ["All", ...Array.from(new Set(mockUsers.flatMap(u => u.skillsHave)))];
-  const allSkillsWant = ["All", ...Array.from(new Set(mockUsers.flatMap(u => u.skillsWant)))];
+  const allCommunities = ["All", ...Array.from(new Set(users.map(u => u.community)))];
+  const allSkillsHave = ["All", ...Array.from(new Set(users.flatMap(u => u.skillsHave)))];
+  const allSkillsWant = ["All", ...Array.from(new Set(users.flatMap(u => u.skillsWant)))];
 
-  const filteredUsers = mockUsers.filter(user => {
+  const filteredUsers = users.filter(user => {
     const matchesSearch =
       user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.primarySkill.toLowerCase().includes(searchQuery.toLowerCase());
@@ -190,15 +145,26 @@ const HomePage = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredUsers.map(user => (
-              <UserCard
-                key={user.id}
-                user={user}
-                onViewProfile={() => setSelectedUser(user)}
-              />
-            ))}
-          </div>
+          {loading ? (
+             <div className="flex items-center justify-center py-20">
+               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#f84565]"></div>
+             </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredUsers.map(user => (
+                <UserCard
+                  key={user.id}
+                  user={user}
+                  onViewProfile={() => setSelectedUser(user)}
+                />
+              ))}
+              {filteredUsers.length === 0 && (
+                <div className="col-span-full text-center py-10 text-gray-500">
+                  No users found matching your filters.
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </main>
 

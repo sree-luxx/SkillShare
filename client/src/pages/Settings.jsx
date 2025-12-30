@@ -24,55 +24,44 @@ const Settings = () => {
             <p className="text-gray-500">Manage your account and preferences</p>
           </div>
 
-          {/* Profile Settings */}
-          <div className="bg-[linear-gradient(135deg,#fff0f4,#ffe6ec,#ffe9ef)]
-        shadow-md border border-[#ffd2dd]
-        hover:shadow-lg  rounded-3xl p-8 space-y-6">
-            <h2 className="text-2xl font-bold">Profile Settings</h2>
-
-            <div className="space-y-5">
-              {/* Full Name */}
-              <div className="space-y-2">
-                <label htmlFor="name" className="font-medium">
-                  Full Name
-                </label>
+          {/* Active Status Visibility */}
+          <div className="bg-[linear-gradient(135deg,#fff0f4,#ffe6ec,#ffe9ef)] shadow-md border border-[#ffd2dd] hover:shadow-lg rounded-3xl p-8 space-y-6">
+            <h2 className="text-2xl font-bold">Active Status</h2>
+            <p className="text-gray-500">Control who can see when you are active</p>
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
                 <input
-                  id="name"
-                  defaultValue="Jane Doe"
-                  className="w-full h-12 px-4 border rounded-xl focus:ring-2 focus:ring-blue-400 outline-none bg-white"
+                  type="radio"
+                  id="active-all"
+                  name="active-visibility"
+                  defaultChecked={localStorage.getItem("activeVisibilityMode") === "all" || !localStorage.getItem("activeVisibilityMode")}
+                  onChange={() => localStorage.setItem("activeVisibilityMode", "all")}
                 />
+                <label htmlFor="active-all" className="font-medium">All</label>
               </div>
-
-              {/* Email */}
-              <div className="space-y-2">
-                <label htmlFor="email" className="font-medium">
-                  Email
-                </label>
+              <div className="flex items-center gap-3">
                 <input
-                  id="email"
-                  type="email"
-                  defaultValue="jane@example.com"
-                  className="w-full h-12 px-4 border rounded-xl focus:ring-2 focus:ring-blue-400 outline-none bg-white"
+                  type="radio"
+                  id="active-selected"
+                  name="active-visibility"
+                  defaultChecked={localStorage.getItem("activeVisibilityMode") === "selected"}
+                  onChange={() => localStorage.setItem("activeVisibilityMode", "selected")}
                 />
+                <label htmlFor="active-selected" className="font-medium">Selected peers</label>
               </div>
-
-              {/* Bio */}
-              <div className="space-y-2">
-                <label htmlFor="bio" className="font-medium">
-                  Bio
-                </label>
-                <textarea
-                  id="bio"
-                  placeholder="Tell others about yourself..."
-                  defaultValue="Full-stack developer passionate about teaching and learning."
-                  className="w-full min-h-28 p-4 border rounded-xl resize-none focus:ring-2 focus:ring-blue-400 outline-none bg-white"
+              <div className="flex items-center gap-3">
+                <input
+                  type="radio"
+                  id="active-none"
+                  name="active-visibility"
+                  defaultChecked={localStorage.getItem("activeVisibilityMode") === "none"}
+                  onChange={() => localStorage.setItem("activeVisibilityMode", "none")}
                 />
+                <label htmlFor="active-none" className="font-medium">None</label>
               </div>
-
-              <button  className=" w-full rounded-full p-2 mt-3 bg-[#f43f5e] 
-          text-white font-semibold  transition-all duration-300 hover:bg-[#e13354] shadow-md ">
-                Save Changes
-              </button>
+              {localStorage.getItem("activeVisibilityMode") === "selected" && (
+                <p className="text-sm text-gray-500">Go to Messages to pick peers; visibility will apply where relevant.</p>
+              )}
             </div>
           </div>
 

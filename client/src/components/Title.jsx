@@ -1,37 +1,45 @@
-import { BellIcon, Sparkles, UserIcon, CheckCircle2, Megaphone } from "lucide-react";
-import React, { useMemo, useState } from "react";
+import { BellIcon, Sparkles, CheckCircle2, Megaphone } from "lucide-react";
+import React, { useMemo, useState, useEffect } from "react";
 import ProfilePopup from "./ProfilePopup";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { notificationAPI } from "../utils/api";
 
 const Title = () => {
   const [showPopup, setShowPopup] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [notifications, setNotifications] = useState([
-    {
-      id: "req-1",
-      title: "Request accepted",
-      message: "Maya Chen accepted your swap request.",
-      time: "2m ago",
-      type: "request",
-      read: false,
-    },
-    {
-      id: "post-1",
-      title: "New community post",
-      message: "Alex Rivera shared an update in IT community.",
-      time: "5m ago",
-      type: "post",
-      read: false,
-    },
-  ]);
+  const [notifications, setNotifications] = useState([]);
+
+  const { logout, user } = useAuth();
+
+  const fetchNotifications = async () => {
+    try {
+      const data = await notificationAPI.getNotifications();
+      setNotifications(data);
+    } catch (error) {
+      console.error("Failed to fetch notifications", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+    // Poll for notifications
+    const interval = setInterval(fetchNotifications, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   const unreadCount = useMemo(() => notifications.filter((n) => !n.read).length, [notifications]);
-  const { logout } = useAuth();
 
-  const toggleNotifications = () => {
+  const toggleNotifications = async () => {
     setShowNotifications((prev) => !prev);
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    if (!showNotifications && unreadCount > 0) {
+      try {
+        await notificationAPI.markAsRead();
+        setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      } catch (error) {
+        console.error("Failed to mark notifications as read", error);
+      }
+    }
   };
 
   const navigate=useNavigate();
@@ -89,33 +97,61 @@ const Title = () => {
             ) : (
               notifications.map((n) => (
                 <div
-                  key={n.id}
+                  key={n._id}
                   className="flex items-start gap-3 p-2 rounded-xl hover:bg-[#fff5f8] transition"
                 >
                   <div className="mt-0.5">
-                    {n.type === "request" ? (
+                    {n.type === "request_accepted" ? (
                       <CheckCircle2 className="w-5 h-5 text-[#22c55e]" />
                     ) : (
                       <Megaphone className="w-5 h-5 text-[#c0264a]" />
                     )}
                   </div>
                   <div className="min-w-0">
-                    <p className="font-semibold text-sm text-gray-800">{n.title}</p>
+                    <p className="font-semibold text-sm text-gray-800">
+                      {n.type === 'request_accepted' ? 'Request Accepted' : 'New Request'}
+                    </p>
                     <p className="text-sm text-gray-600 truncate">{n.message}</p>
-                    <p className="text-xs text-gray-400 mt-1">{n.time}</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
                   </div>
                 </div>
               ))
             )}
           </div>
         )}
-        <UserIcon
+        <div
           className="
-            w-5 h-5 cursor-pointer
+            w-8 h-8 rounded-full cursor-pointer
             transition-all duration-300 
-            hover:text-[#f43f5e] hover:scale-110
-          "  onClick={() => setShowPopup(prev => !prev)}
-        />
+            hover:scale-110 overflow-hidden
+            flex items-center justify-center
+            border-2 border-[#c0264a]
+          "
+          onClick={() => setShowPopup(prev => !prev)}
+        >
+          {user?.avatarUrl && user.avatarUrl.trim() !== "" ? (
+            <img 
+              key={`avatar-${user.avatarUrl.substring(0, 50)}`}
+              src={user.avatarUrl} 
+              alt="Profile" 
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                // Hide broken image
+                e.target.style.display = 'none';
+              }}
+            />
+          ) : user?.email ? (
+            <div className="w-full h-full flex items-center justify-center bg-[#f43f5e] text-white text-sm font-bold">
+              {user.email.charAt(0).toUpperCase()}
+            </div>
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-gray-300 text-gray-600 text-sm font-bold">
+              ?
+            </div>
+          )}
+        </div>
         {showPopup && (
           <ProfilePopup
             onEdit={() => navigate('/profile')}
