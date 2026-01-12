@@ -12,7 +12,12 @@ const matchRoutes = require('./routes/matchRoutes');
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+    origin: "https://skill-share-delta.vercel.app", // frontend URL
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+  }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
