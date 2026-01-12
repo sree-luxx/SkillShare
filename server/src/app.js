@@ -8,6 +8,7 @@ const communityRoutes = require('./routes/communityRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const messageRoutes = require('./routes/messageRoutes');
 const communityPostRoutes = require('./routes/communityPostRoutes');
+const matchRoutes = require('./routes/matchRoutes');
 
 const app = express();
 
@@ -23,6 +24,7 @@ app.use('/api/communities', communityRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/community-posts', communityPostRoutes);
+app.use('/api/matches', matchRoutes);
 
 app.get('/', (req, res) => res.send('SkillSwap API up'));
 

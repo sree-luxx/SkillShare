@@ -7,25 +7,26 @@ exports.listByCommunity = async (req, res) => {
     const community = await Community.findOne({ communityName: name });
     if (!community) return res.status(404).json({ message: 'Community not found' });
 
-  const posts = await CommunityPost.find({ community: community._id, status: 'approved' })
+    const posts = await CommunityPost.find({ community: community._id, status: 'approved' })
       .populate('author', 'name avatarUrl')
       .populate('comments.user', 'name avatarUrl')
       .sort({ createdAt: -1 });
 
-  const formatted = posts.map(p => ({
-    id: p._id,
-    author: { id: p.author._id, name: p.author.name, avatarUrl: p.author.avatarUrl || '' },
-    content: p.content,
-    imageUrl: p.imageUrl || '',
-    reactions: p.reactions,
-    comments: (p.comments || []).map(c => ({
-      author: { id: c.user?._id, name: c.user?.name || 'Member', avatarUrl: c.user?.avatarUrl || '' },
-      text: c.text,
-      createdAt: c.createdAt
-    })),
-    createdAt: p.createdAt
-  }));
-  res.json(formatted);
+    const formatted = posts.map(p => ({
+      id: p._id,
+      author: { id: p.author._id, name: p.author.name, avatarUrl: p.author.avatarUrl || '' },
+      content: p.content,
+      imageUrl: p.imageUrl || '',
+      reactions: p.reactions,
+      comments: (p.comments || []).map(c => ({
+        id: c._id,
+        author: { id: c.user._id, name: c.user.name, avatarUrl: c.user.avatarUrl || '' },
+        text: c.text,
+        createdAt: c.createdAt
+      })),
+      createdAt: p.createdAt
+    }));
+    res.json(formatted);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
@@ -93,8 +94,8 @@ exports.react = async (req, res) => {
       post.reactions[type] = (post.reactions[type] || 0) + 1;
     }
 
-  await post.save();
-  res.json({ reactions: post.reactions });
+    await post.save();
+    res.json({ reactions: post.reactions });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
@@ -106,17 +107,18 @@ exports.addComment = async (req, res) => {
     const { id } = req.params;
     const { text } = req.body;
     if (!text || !text.trim()) return res.status(400).json({ message: 'Comment text required' });
-    const post = await CommunityPost.findById(id);
+    const post = await CommunityPost.findById(id).populate('comments.user', 'name avatarUrl');
     if (!post) return res.status(404).json({ message: 'Post not found' });
+    if (post.status === 'pending') return res.status(400).json({ message: 'Cannot comment on pending posts' });
     post.comments.push({ user: req.user._id, text: text.trim() });
     await post.save();
-    const populated = await post.populate('comments.user', 'name avatarUrl');
-    const comments = populated.comments.map(c => ({
-      author: { id: c.user?._id, name: c.user?.name || 'Member', avatarUrl: c.user?.avatarUrl || '' },
-      text: c.text,
-      createdAt: c.createdAt
-    }));
-    res.status(201).json({ comments });
+    const newComment = post.comments[post.comments.length - 1];
+    res.status(201).json({
+      id: newComment._id,
+      author: { id: req.user._id, name: req.user.name, avatarUrl: req.user.avatarUrl || '' },
+      text: newComment.text,
+      createdAt: newComment.createdAt
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });

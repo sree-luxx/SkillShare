@@ -14,7 +14,7 @@ const UserCard = ({ user, onViewProfile, footerContent }) => {
       {/* Header */}
       <div className="flex items-start gap-4">
         {/* Avatar */}
-        <div className="w-16 h-16 rounded-full overflow-hidden shadow">
+        <div className="w-20 h-20 rounded-full overflow-hidden shadow">
           <img
             src={user.avatar}
             alt={user.name}
@@ -24,12 +24,12 @@ const UserCard = ({ user, onViewProfile, footerContent }) => {
 
         {/* User Data */}
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-lg truncate text-[#c0264a]">
+          <h3 className="font-semibold text-xl truncate text-[#c0264a]">
             {user.name}
           </h3>
 
-          <div className="flex items-center gap-1 text-sm text-[#c94b63]">
-            <Star className="w-4 h-4 fill-[#f43f5e] text-[#f43f5e]" />
+          <div className="flex items-center gap-1 text-base text-[#c94b63]">
+            <Star className="w-5 h-5 fill-[#f43f5e] text-[#f43f5e]" />
             <span>{user.rating}</span>
           </div>
         </div>
@@ -40,20 +40,20 @@ const UserCard = ({ user, onViewProfile, footerContent }) => {
         className="
           inline-block rounded-full 
           bg-[#ffd9e1] text-[#c0264a]
-          px-3 py-1 text-sm font-medium
+          px-4 py-1.5 text-base font-medium
         "
       >
         {user.primarySkill}
       </div>
 
       {user.community && (
-        <div className="text-sm text-[#7a4450] font-semibold">
+        <div className="text-base text-[#7a4450] font-semibold">
           {user.community}
         </div>
       )}
 
       {/* Short Bio */}
-      <p className="text-sm text-[#7a4450] leading-relaxed">
+      <p className="text-base text-[#7a4450] leading-relaxed">
         {user.bio || "A dedicated learner who loves sharing skills and helping others grow."}
       </p>
 
@@ -61,9 +61,9 @@ const UserCard = ({ user, onViewProfile, footerContent }) => {
       <button
         onClick={onViewProfile}
         className="
-          w-full rounded-full p-2 mt-3 
+          w-full rounded-full p-2.5 mt-3 
           bg-[#f43f5e] 
-          text-white font-semibold 
+          text-white font-semibold text-lg
           transition-all duration-300
           hover:bg-[#e13354]
           shadow-md

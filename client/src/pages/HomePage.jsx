@@ -98,7 +98,10 @@ const HomePage = () => {
       <main className="ml-64 p-8 animate-fade-in">
         <div className="max-w-6xl mx-auto space-y-8">
           <div className="space-y-4">
-            <h1 className="text-4xl font-bold">Discover Skills</h1>
+            <h1 className="text-5xl font-bold">Discover & Connect</h1>
+            <p className="text-lg text-gray-500">Find peers with skills you want to learn</p>
+          </div>
+            <h1 className="text-5xl font-bold">Discover Skills</h1>
             <div className="rounded-2xl border border-[#ffd2dd] bg-[linear-gradient(135deg,#fff5f8,#fef0f6)] p-4 flex flex-wrap gap-3 items-center shadow-sm">
               <div className="relative w-full md:w-72">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#c0264a]" />
@@ -143,7 +146,7 @@ const HomePage = () => {
                 Apply Filters
               </button>
             </div>
-          </div>
+
 
           {loading ? (
              <div className="flex items-center justify-center py-20">

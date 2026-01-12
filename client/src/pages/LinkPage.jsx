@@ -27,6 +27,11 @@ const LinkPage = () => {
 
       {/* SHIFT PAGE RIGHT TO AVOID OVERLAP */}
       <div className="pl-64">
+        
+        {/* Page Title Removed as requested */}
+        {/* <div className="px-8 pt-8 pb-2">
+          <h1 className="text-4xl font-bold text-gray-900">Connections</h1>
+        </div> */}
 
         {/* SUB NAV */}
         <div className="flex gap-4 px-8 py-4 shadow-sm bg-[linear-gradient(135deg,#fff0f4,#ffe6ec,#ffe9ef)]">

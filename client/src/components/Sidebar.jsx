@@ -25,10 +25,10 @@ const Sidebar = () => {
   return (
     <aside
       className="
-        fixed left-0 top-auto h-screen w-64 
+        fixed left-0 top-0 h-screen w-64 
         bg-[linear-gradient(135deg,#fff0f4,#ffe6ec,#ffe9ef)]
         border-r border-[#ffd2dd]
-        p-6 space-y-6 z-10 shadow-sm
+        px-6 pb-6 pt-28 space-y-6 z-40 shadow-sm
       "
     >
       <nav className="space-y-2">

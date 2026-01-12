@@ -19,32 +19,15 @@ const MessagePage = () => {
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [scheduleDraft, setScheduleDraft] = useState("");
 
-  const formatDayLabel = (dateStr) => {
-    const d = new Date(dateStr);
-    const today = new Date();
-    const yesterday = new Date();
-    yesterday.setDate(today.getDate() - 1);
-    const isSameDay = (a, b) =>
-      a.getFullYear() === b.getFullYear() &&
-      a.getMonth() === b.getMonth() &&
-      a.getDate() === b.getDate();
-    if (isSameDay(d, today)) return "Today";
-    if (isSameDay(d, yesterday)) return "Yesterday";
-    return d.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
-  };
-
-  const groupMessagesByDay = (msgs) => {
-    const groups = [];
-    let lastLabel = null;
-    msgs.forEach((m) => {
-      const label = formatDayLabel(m.createdAt);
-      if (label !== lastLabel) {
-        groups.push({ type: "header", label, key: `hdr-${label}-${m._id || Math.random()}` });
-        lastLabel = label;
-      }
-      groups.push({ type: "msg", data: m, key: m._id || Math.random() });
-    });
-    return groups;
+  const formatRelativeDay = (d) => {
+    const now = new Date();
+    const date = new Date(d);
+    const startOfNow = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const diff = Math.floor((startOfNow - startOfDate) / (24 * 60 * 60 * 1000));
+    if (diff === 0) return "Today";
+    if (diff === 1) return "Yesterday";
+    return date.toLocaleDateString([], { weekday: "long" });
   };
 
   const scrollToBottom = () => {
@@ -242,38 +225,41 @@ const MessagePage = () => {
                     </p>
                   </div>
                 ) : (
-                  groupMessagesByDay(messages).map((item) =>
-                    item.type === "header" ? (
-                      <div
-                        key={item.key}
-                        className="flex justify-center"
-                      >
-                        <span className="px-3 py-1 text-xs rounded-full bg-white border border-[#ffd2dd] text-[#c0264a]">
-                          {item.label}
-                        </span>
-                      </div>
-                    ) : (
-                      <div
-                        key={item.key}
-                        className={`flex ${item.data.sender === currentUser?.id ? "justify-end" : "justify-start"}`}
-                      >
+                  messages.map((msg, idx) => {
+                    const label = formatRelativeDay(msg.createdAt);
+                    const prevLabel = idx > 0 ? formatRelativeDay(messages[idx - 1].createdAt) : null;
+                    return (
+                      <div key={`${msg._id}-wrap`} className="space-y-2">
+                        {(idx === 0 || label !== prevLabel) && (
+                          <div className="flex justify-center">
+                            <span className="px-3 py-1 text-xs rounded-full bg-white border border-[#ffd2dd] text-muted-foreground">
+                              {label}
+                            </span>
+                          </div>
+                        )}
                         <div
-                          className={`max-w-[70%] px-5 py-3 rounded-2xl shadow-sm ${
-                            item.data.sender === currentUser?.id
-                              ? "bg-[#f84565] text-white rounded-br-none"
-                              : "rounded-bl-none border border-[#f1e3cc] bg-[#f8f1e3] text-gray-900"
-                          }`}
+                          className={`flex ${msg.sender === currentUser?.id ? "justify-end" : "justify-start"}`}
                         >
-                          <p>{item.data.text}</p>
-                          <p className={`text-[10px] mt-1 text-right ${
-                            item.data.sender === currentUser?.id ? "text-white/70" : "text-gray-600"
-                          }`}>
-                            {new Date(item.data.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </p>
+                          <div
+                            className={`max-w-[70%] px-5 py-3 rounded-2xl shadow-sm ${
+                              msg.sender === currentUser?.id
+                                ? "bg-[#f84565] text-white rounded-br-none"
+                                : "glass rounded-bl-none"
+                            }`}
+                          >
+                            <p>{msg.text}</p>
+                            <p
+                              className={`text-[10px] mt-1 text-right ${
+                                msg.sender === currentUser?.id ? "text-white/70" : "text-muted-foreground"
+                              }`}
+                            >
+                              {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            </p>
+                          </div>
                         </div>
                       </div>
-                    )
-                  )
+                    );
+                  })
                 )}
                 <div ref={messagesEndRef} />
               </div>

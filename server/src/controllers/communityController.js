@@ -96,3 +96,17 @@ exports.deleteCommunity = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+exports.getCommunityByName = async (req, res) => {
+  try {
+    const { name } = req.params;
+    const community = await Community.findOne({ communityName: name });
+    if (!community) {
+      return res.status(404).json({ message: 'Community not found' });
+    }
+    res.json(community);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};

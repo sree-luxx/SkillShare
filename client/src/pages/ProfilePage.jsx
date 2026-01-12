@@ -170,25 +170,25 @@ const ProfilePage = () => {
 
   return (
     <div className="min-h-screen py-10 px-6 bg-secondary">
-      <div className="max-w-3xl mx-auto bg-secondary-panel shadow-lg rounded-2xl p-8 space-y-8">
-        <div className="flex items-center gap-4">
+      <div className="max-w-3xl mx-auto bg-secondary-panel shadow-lg rounded-2xl p-10 space-y-10">
+        <div className="flex items-center gap-6">
           <button
             onClick={() => navigate('/home')}
-            className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 transition-colors"
+            className="flex items-center justify-center w-12 h-12 rounded-full hover:bg-gray-100 transition-colors"
             aria-label="Go back to home"
           >
-            <ArrowLeft className="w-5 h-5 text-[#c0264a]" />
+            <ArrowLeft className="w-6 h-6 text-[#c0264a]" />
           </button>
-          <h1 className="text-3xl font-bold">Edit Profile</h1>
+          <h1 className="text-5xl font-bold">Edit Profile</h1>
         </div>
 
         {/* Profile Picture Upload */}
-        <div className="flex items-center gap-6">
-          <div className="w-28 h-28 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center">
+        <div className="flex items-center gap-8">
+          <div className="w-32 h-32 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center">
             {tempAvatar ? (
               <img src={tempAvatar} alt="Avatar" className="w-full h-full object-cover" />
             ) : profile.email ? (
-              <div className="w-full h-full flex items-center justify-center bg-[#f43f5e] text-white text-3xl font-bold">
+              <div className="w-full h-full flex items-center justify-center bg-[#f43f5e] text-white text-4xl font-bold">
                 {profile.email.charAt(0).toUpperCase()}
               </div>
             ) : (
@@ -198,18 +198,18 @@ const ProfilePage = () => {
             )}
           </div>
 
-          <label className="cursor-pointer btn-primary px-4 py-2 rounded-lg">
+          <label className="cursor-pointer btn-primary px-6 py-3 rounded-xl text-lg font-semibold">
             Upload Picture
             <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
           </label>
         </div>
 
         {/* Name */}
-        <div className="space-y-1">
-          <label className="font-medium">Name</label>
+        <div className="space-y-2">
+          <label className="font-semibold text-lg">Name</label>
           <input
             type="text"
-            className="w-full border rounded-lg px-4 py-2"
+            className="w-full border rounded-xl px-5 py-3 text-lg"
             value={profile.name}
             onChange={(e) => setProfile({ ...profile, name: e.target.value })}
             placeholder="Enter your full name"
@@ -217,11 +217,11 @@ const ProfilePage = () => {
         </div>
 
         {/* Email */}
-        <div className="space-y-1">
-          <label className="font-medium">Email ID</label>
+        <div className="space-y-2">
+          <label className="font-semibold text-lg">Email ID</label>
           <input
             type="email"
-            className="w-full border rounded-lg px-4 py-2"
+            className="w-full border rounded-xl px-5 py-3 text-lg"
             value={profile.email}
             onChange={(e) => setProfile({ ...profile, email: e.target.value })}
             placeholder="your@email.com"
@@ -229,10 +229,10 @@ const ProfilePage = () => {
         </div>
 
         {/* Bio */}
-        <div className="space-y-1">
-          <label className="font-medium">Bio</label>
+        <div className="space-y-2">
+          <label className="font-semibold text-lg">Bio</label>
           <textarea
-            className="w-full border rounded-lg px-4 py-2 h-28 resize-none"
+            className="w-full border rounded-xl px-5 py-3 h-32 resize-none text-lg"
             value={profile.bio}
             onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
             placeholder="Write something about yourself..."
@@ -240,29 +240,29 @@ const ProfilePage = () => {
         </div>
 
         {/* Skills Have */}
-        <div className="space-y-2">
-          <label className="font-medium">Skills You Have</label>
-          <div className="flex gap-2">
+        <div className="space-y-3">
+          <label className="font-semibold text-lg">Skills You Have</label>
+          <div className="flex gap-3">
             <input
               type="text"
-              className="flex-1 border rounded-lg px-4 py-2"
+              className="flex-1 border rounded-xl px-5 py-3 text-lg"
               placeholder="Add a skill you can teach"
               value={skillInputHave}
               onChange={(e) => setSkillInputHave(e.target.value)}
             />
             <button
               onClick={handleAddSkillHave}
-              className="btn-primary px-4 py-2 rounded-lg"
+              className="btn-primary px-6 py-3 rounded-xl text-lg"
             >
               Add
             </button>
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-3">
             {profile.skillsHave.map((skill, index) => (
               <span
                 key={index}
-                className="bg-primary-dull/10 text-primary-dull px-3 py-1 rounded-full flex items-center gap-2"
+                className="bg-primary-dull/10 text-primary-dull px-4 py-2 rounded-full flex items-center gap-2 text-base"
               >
                 {skill}
                 <button

@@ -2,21 +2,23 @@ import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { communityAPI, communityPostsAPI } from "../../utils/api";
 import { useAuth } from "../../contexts/AuthContext";
-import { ThumbsUp, Heart, PartyPopper, Lightbulb, Smile, MessageSquare } from "lucide-react";
+import { ThumbsUp, Heart, PartyPopper, Lightbulb, Laugh } from "lucide-react";
 
 const CommunityDetail = () => {
   const { name } = useParams();
-  const { user } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   const [community, setCommunity] = useState(null);
   const [requiresPostApproval, setRequiresPostApproval] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [posts, setPosts] = useState([]);
+  const [commentDrafts, setCommentDrafts] = useState({});
+  const [pickerFor, setPickerFor] = useState(null);
+  const [reactingPostId, setReactingPostId] = useState(null);
   useEffect(() => {
     const load = async () => {
       try {
-        const data = await communityAPI.listCommunities();
-        const found = (data || []).find((c) => c.communityName === name);
-        if (found) {
+        const found = await communityAPI.getCommunityByName(name);
+        if (found && found.communityName) {
           setCommunity({
             name: found.communityName,
             image: found.bannerUrl || "/images/it.jpg",
@@ -24,10 +26,11 @@ const CommunityDetail = () => {
             members: 0,
           });
           setRequiresPostApproval(Boolean(found.requiresPostApproval));
-          const adminCheck =
-            String(found.createdBy) === String(user?.id) ||
-            (Array.isArray(found.moderators) && found.moderators.some((m) => String(m) === String(user?.id)));
-          setIsAdmin(Boolean(adminCheck));
+          const isOwner = user && String(found.createdBy) === String(user.id);
+          const isModerator = user && Array.isArray(found.moderators) && found.moderators.some((m) => String(m) === String(user.id));
+          setJoined(Boolean(isOwner || isModerator));
+          const feed = await communityPostsAPI.getPosts(found.communityName);
+          setPosts(feed.map(p => ({ ...p, showCommentBox: false })));
         } else {
           setCommunity(null);
         }
@@ -36,49 +39,12 @@ const CommunityDetail = () => {
       }
     };
     load();
-  }, [name, user]);
+  }, [name]);
 
   const [joined, setJoined] = useState(false);
   const [membersCount, setMembersCount] = useState(0);
   const [newPostText, setNewPostText] = useState("");
   const [newPostImage, setNewPostImage] = useState(null);
-  const [posts, setPosts] = useState([]);
-  useEffect(() => {
-    const loadPosts = async () => {
-      try {
-        const data = await communityPostsAPI.listByCommunity(name);
-        setPosts(
-          (data || []).map((p) => ({
-            id: p.id,
-            authorName: p.author?.name || "Member",
-            authorAvatar: p.author?.avatarUrl || "",
-            timeAgo: "", // could format p.createdAt if needed
-            content: p.content,
-            image: p.imageUrl || null,
-            reactions: p.reactions || { like: 0, love: 0, celebrate: 0, insightful: 0, funny: 0 },
-            pending: false,
-            showCommentBox: false,
-            myReaction: null,
-            showReactionPicker: false,
-            comments: [],
-          }))
-        );
-      } catch {
-        setPosts([]);
-      }
-    };
-    loadPosts();
-  }, [name]);
-
-  useEffect(() => {
-    const key = `community:joined:${user?.id || "guest"}:${name}`;
-    const saved = localStorage.getItem(key);
-    if (isAdmin || saved === "true") {
-      setJoined(true);
-    } else {
-      setJoined(false);
-    }
-  }, [isAdmin, name, user]);
 
   if (!community) {
     return (
@@ -88,64 +54,36 @@ const CommunityDetail = () => {
     );
   }
 
-  const handleJoinToggle = () => {
-    if (isAdmin) return;
-    const key = `community:joined:${user?.id || "guest"}:${name}`;
+  const handleJoin = () => {
     if (!joined) {
       setJoined(true);
-      localStorage.setItem(key, "true");
       setMembersCount((prev) => prev + 1);
-    } else {
-      setJoined(false);
-      localStorage.removeItem(key);
-      setMembersCount((prev) => (prev > 0 ? prev - 1 : 0));
     }
   };
 
-  const handlePostSubmit = async () => {
-    if (!joined) return;
-    if (!newPostText.trim() && !newPostImage) return;
+  const toBase64 = (file) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
 
-    try {
-      let imageBase64 = "";
-      if (newPostImage) {
-        const reader = new FileReader();
-        const filePromise = new Promise((resolve) => {
-          reader.onloadend = () => resolve(reader.result);
-        });
-        reader.readAsDataURL(newPostImage);
-        imageBase64 = await filePromise;
-      }
-      const created = await communityPostsAPI.create({
-        communityName: name,
-        content: newPostText.trim(),
-        imageUrl: imageBase64,
-      });
-      setNewPostText("");
-      setNewPostImage(null);
-      // If pending, do not show in the list until approved; otherwise prepend
-      if (created.status !== "pending") {
-        setPosts((prev) => [
-          {
-            id: created.id,
-            authorName: created.author?.name || user?.name || "You",
-            authorAvatar: created.author?.avatarUrl || user?.avatarUrl || "",
-            timeAgo: "Just now",
-            content: created.content,
-            image: created.imageUrl || null,
-            reactions: created.reactions || { like: 0, love: 0, celebrate: 0, insightful: 0, funny: 0 },
-            pending: false,
-            showCommentBox: false,
-            showReactionPicker: false,
-            myReaction: null,
-            comments: [],
-          },
-          ...prev,
-        ]);
-      }
-    } catch {
-      // silently ignore
+  const handlePostSubmit = async () => {
+    if (!isAuthenticated) return;
+    if (!newPostText.trim() && !newPostImage) return;
+    let imageUrl = "";
+    if (newPostImage) {
+      imageUrl = await toBase64(newPostImage);
     }
+    const created = await communityPostsAPI.createPost({
+      communityName: community.name,
+      content: newPostText.trim(),
+      imageUrl
+    });
+    setPosts(prev => [{ ...created, showCommentBox: false }, ...prev]);
+    setNewPostText("");
+    setNewPostImage(null);
   };
 
   const handleImageChange = (event) => {
@@ -153,6 +91,31 @@ const CommunityDetail = () => {
     setNewPostImage(file || null);
   };
 
+  const handleReact = async (postId, type) => {
+    if (reactingPostId === postId) return;
+    setReactingPostId(postId);
+    const res = await communityPostsAPI.react(postId, type);
+    setPosts(prev =>
+      prev.map(p => {
+        if (p.id !== postId) return p;
+        const next = { ...p, reactions: res.reactions };
+        next.myReaction = p.myReaction === type ? null : type;
+        return next;
+      })
+    );
+    setPickerFor(null);
+    setReactingPostId(null);
+  };
+
+  const submitComment = async (postId) => {
+    const text = (commentDrafts[postId] || "").trim();
+    if (!text) return;
+    const created = await communityPostsAPI.addComment(postId, { text });
+    setPosts(prev =>
+      prev.map(p => (p.id === postId ? { ...p, comments: [...(p.comments || []), created], showCommentBox: false } : p))
+    );
+    setCommentDrafts(prev => ({ ...prev, [postId]: "" }));
+  };
   return (
     <div className="min-h-screen bg-[#f5f7fb]">
       {/* Banner */}
@@ -173,22 +136,16 @@ const CommunityDetail = () => {
             <p className="text-sm text-gray-500 mt-1">{membersCount} members</p>
           </div>
           <div className="flex items-center gap-3">
-            {isAdmin ? (
-              <span className="px-5 py-2 rounded-full bg-white border border-[#fda4b8] text-[#c0264a] font-semibold">
-                Admin
-              </span>
-            ) : (
-              <button
-                onClick={handleJoinToggle}
-                className={`px-5 py-2 rounded-full font-semibold transition ${
-                  joined
-                    ? "bg-white border border-[#fda4b8] text-[#c0264a] hover:bg-[#fff0f4]"
-                    : "bg-[#fda4b8] text-white shadow-md hover:shadow-lg"
-                }`}
-              >
-                {joined ? "Unjoin" : "Join"}
-              </button>
-            )}
+            <button
+              onClick={handleJoin}
+              className={`px-5 py-2 rounded-full font-semibold transition ${
+                joined
+                  ? "bg-white border border-[#fda4b8] text-[#c0264a]"
+                  : "bg-[#fda4b8] text-white shadow-md hover:shadow-lg"
+              }`}
+            >
+              {joined ? "Joined" : "Join"}
+            </button>
           </div>
         </div>
 
@@ -201,7 +158,7 @@ const CommunityDetail = () => {
                 You need to join this community before you can post.
               </p>
               <button
-                onClick={handleJoinToggle}
+                onClick={handleJoin}
                 className="mt-3 px-4 py-2 rounded-full bg-[#fda4b8] text-white font-semibold shadow"
               >
                 Join now
@@ -211,13 +168,7 @@ const CommunityDetail = () => {
 
           <div className="flex gap-3">
             <img
-              src={
-                user?.avatarUrl && user.avatarUrl.trim() !== ""
-                  ? user.avatarUrl
-                  : user?.email
-                  ? `https://api.dicebear.com/7.x/initials/svg?seed=${user.email[0].toUpperCase()}`
-                  : "https://api.dicebear.com/7.x/initials/svg?seed=?"
-              }
+              src={user?.avatarUrl || "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=120&q=80&sat=-20"}
               alt="avatar"
               className="w-12 h-12 rounded-full object-cover border"
             />
@@ -274,162 +225,127 @@ const CommunityDetail = () => {
 
         {/* Feed */}
         <div className="space-y-4">
-          {posts.length === 0 ? (
-            <div className="text-center text-gray-600 py-12">No posts yet</div>
-          ) : posts.map((post) => (
+          {posts.map((post) => (
             <article
               key={post.id}
               className="bg-white rounded-xl shadow border border-[#ffd2dd] p-4 space-y-3"
             >
               <div className="flex items-start gap-3">
                 <img
-                  src={
-                    post.authorAvatar && post.authorAvatar.trim() !== ""
-                      ? post.authorAvatar
-                      : "https://api.dicebear.com/7.x/initials/svg?seed=?"
-                  }
-                  alt={post.authorName}
+                  src={post.author?.avatarUrl || ""}
+                  alt={post.author?.name || ""}
                   className="w-11 h-11 rounded-full object-cover border"
                 />
                 <div>
-                  <p className="font-semibold text-gray-900">{post.authorName}</p>
-                  <p className="text-sm text-gray-500">Community Member</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{post.timeAgo}</p>
+                  <p className="font-semibold text-gray-900">{post.author?.name || ""}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {post.createdAt ? new Date(post.createdAt).toLocaleString() : ""}
+                  </p>
                 </div>
               </div>
               <p className="text-gray-800 leading-relaxed">{post.content}</p>
-              {post.pending && (
+              {post.status === "pending" && (
                 <span className="inline-block text-xs px-2 py-1 rounded-full bg-yellow-100 text-yellow-800">
                   Pending approval
                 </span>
               )}
-              {post.image && (
+              {post.imageUrl && (
                 <div className="rounded-xl overflow-hidden border">
-                  <img src={post.image} alt="post visual" className="w-full object-cover max-h-96" />
+                  <img src={post.imageUrl} alt="post visual" className="w-full object-cover max-h-96" />
                 </div>
               )}
-              <div className="flex flex-wrap gap-3 text-sm text-gray-600 pt-1 relative">
-                <div
-                  className="relative"
-                  onMouseEnter={() =>
-                    setPosts((prev) => prev.map((p) => (p.id === post.id ? { ...p, showReactionPicker: true } : p)))
-                  }
-                  onMouseLeave={() =>
-                    setPosts((prev) => prev.map((p) => (p.id === post.id ? { ...p, showReactionPicker: false } : p)))
-                  }
-                >
+              <div className="flex gap-4 text-sm text-gray-600 pt-1 relative">
+                <div>
                   <button
-                    className={`px-3 py-1 rounded-full border flex items-center gap-2 ${
-                      post.myReaction ? "bg-[#fff0f4] text-[#c0264a] border-[#ffd2dd]" : "border-[#ffd2dd]"
-                    }`}
-                    disabled={post.pending}
+                    className={`px-3 py-1 rounded-full border border-[#ffd2dd] ${post.myReaction ? "bg-[#fff0f4] text-[#c0264a]" : ""}`}
+                    disabled={post.status === "pending"}
+                    onClick={() => setPickerFor(pickerFor === post.id ? null : post.id)}
                   >
-                    <ThumbsUp className="w-4 h-4" />
-                    {post.myReaction ? "Reacted" : "Like"}
+                    {post.myReaction ? post.myReaction : "React"}
                   </button>
-                  {post.showReactionPicker && (
-                    <div className="absolute -top-12 left-0 bg-white border border-[#ffd2dd] rounded-full shadow px-2 py-1 flex gap-2">
-                      {[
-                        { key: "like", icon: ThumbsUp },
-                        { key: "celebrate", icon: PartyPopper },
-                        { key: "love", icon: Heart },
-                        { key: "insightful", icon: Lightbulb },
-                        { key: "funny", icon: Smile },
-                      ].map(({ key, icon }) => {
-                        const IconComp = icon;
-                        return (
-                          <button
-                            key={key}
-                            className={`p-2 rounded-full ${post.myReaction === key ? "bg-[#fff0f4] text-[#c0264a]" : "hover:bg-[#fff0f4]"}`}
-                            onClick={async () => {
-                              try {
-                                const res = await communityPostsAPI.react(post.id, key);
-                                setPosts((prev) =>
-                                  prev.map((p) =>
-                                    p.id === post.id
-                                      ? { ...p, reactions: res.reactions, myReaction: p.myReaction === key ? null : key, showReactionPicker: false }
-                                      : p
-                                  )
-                                );
-                              } catch {
-                                void 0;
-                              }
-                            }}
-                            disabled={post.pending}
-                            aria-label={key}
-                          >
-                            <IconComp className="w-4 h-4" />
-                          </button>
-                        );
-                      })}
+                  {pickerFor === post.id && (
+                    <div
+                      className="absolute z-10 mt-2 p-2 rounded-2xl bg-white border border-[#ffd2dd] shadow flex gap-2"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <button
+                        className="flex items-center gap-2 px-3 py-2 rounded-full hover:bg-[#fff0f4] text-[#c0264a] border border-transparent"
+                        onClick={() => handleReact(post.id, "like")}
+                        disabled={reactingPostId === post.id}
+                      >
+                        <ThumbsUp size={18} /> Like
+                      </button>
+                      <button
+                        className="flex items-center gap-2 px-3 py-2 rounded-full hover:bg-[#fff0f4] text-[#c0264a] border border-transparent"
+                        onClick={() => handleReact(post.id, "love")}
+                        disabled={reactingPostId === post.id}
+                      >
+                        <Heart size={18} /> Love
+                      </button>
+                      <button
+                        className="flex items-center gap-2 px-3 py-2 rounded-full hover:bg-[#fff0f4] text-[#c0264a] border border-transparent"
+                        onClick={() => handleReact(post.id, "celebrate")}
+                        disabled={reactingPostId === post.id}
+                      >
+                        <PartyPopper size={18} /> Celebrate
+                      </button>
+                      <button
+                        className="flex items-center gap-2 px-3 py-2 rounded-full hover:bg-[#fff0f4] text-[#c0264a] border border-transparent"
+                        onClick={() => handleReact(post.id, "insightful")}
+                        disabled={reactingPostId === post.id}
+                      >
+                        <Lightbulb size={18} /> Insightful
+                      </button>
+                      <button
+                        className="flex items-center gap-2 px-3 py-2 rounded-full hover:bg-[#fff0f4] text-[#c0264a] border border-transparent"
+                        onClick={() => handleReact(post.id, "funny")}
+                        disabled={reactingPostId === post.id}
+                      >
+                        <Laugh size={18} /> Funny
+                      </button>
                     </div>
                   )}
                 </div>
                 <button
-                  className="ml-auto px-3 py-1 rounded-full border border-[#ffd2dd] flex items-center gap-2"
-                  onClick={() =>
-                    setPosts((prev) =>
-                      prev.map((p) =>
-                        p.id === post.id ? { ...p, showCommentBox: !p.showCommentBox } : p
-                      )
-                    )
-                  }
+                  className="px-3 py-1 rounded-full border border-[#ffd2dd]"
+                  onClick={() => setPosts((prev) => prev.map((p) => p.id === post.id ? { ...p, showCommentBox: !p.showCommentBox } : p))}
                 >
-                  <MessageSquare className="w-4 h-4" />
-                  {post.showCommentBox ? "Hide comments" : `Comments (${post.comments.length})`}
+                  💬 Comment
                 </button>
               </div>
-              
+              <div className="flex gap-6 text-sm text-gray-500">
+                <span className="inline-flex items-center gap-1"><ThumbsUp size={16} /> {post.reactions?.like || 0}</span>
+                <span className="inline-flex items-center gap-1"><Heart size={16} /> {post.reactions?.love || 0}</span>
+                <span className="inline-flex items-center gap-1"><PartyPopper size={16} /> {post.reactions?.celebrate || 0}</span>
+                <span className="inline-flex items-center gap-1"><Lightbulb size={16} /> {post.reactions?.insightful || 0}</span>
+                <span className="inline-flex items-center gap-1"><Laugh size={16} /> {post.reactions?.funny || 0}</span>
+                <span>💬 {(post.comments || []).length}</span>
+              </div>
               {post.showCommentBox && (
                 <div className="mt-2">
-                  <input
-                    className="w-full border rounded-lg px-3 py-2"
-                    placeholder="Write a comment..."
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && e.currentTarget.value.trim()) {
-                        const text = e.currentTarget.value.trim();
-                        (async () => {
-                          try {
-                            const res = await communityPostsAPI.comment(post.id, text);
-                            setPosts((prev) =>
-                              prev.map((p) =>
-                                p.id === post.id
-                                  ? {
-                                      ...p,
-                                      comments: (res.comments || []).map((c) => ({
-                                        authorName: c.author?.name || "Member",
-                                        authorAvatar: c.author?.avatarUrl || "",
-                                        text: c.text,
-                                        createdAt: c.createdAt,
-                                      })),
-                                    }
-                                  : p
-                              )
-                            );
-                          } catch {
-                            void 0;
-                          } finally {
-                            e.currentTarget.value = "";
-                          }
-                        })();
-                      }
-                    }}
-                  />
-                  <div className="mt-3 space-y-2">
-                    {post.comments.map((c, idx) => (
-                      <div key={idx} className="flex items-start gap-2">
-                        <img
-                          src={c.authorAvatar && c.authorAvatar.trim() !== "" ? c.authorAvatar : "https://api.dicebear.com/7.x/initials/svg?seed=?"}
-                          alt={c.authorName}
-                          className="w-7 h-7 rounded-full object-cover border"
-                        />
-                        <div className="bg-[#fff5f7] border border-[#ffd2dd] rounded-xl px-3 py-2">
-                          <p className="text-sm font-semibold text-[#c0264a]">{c.authorName}</p>
-                          <p className="text-sm text-gray-700">{c.text}</p>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="flex gap-2">
+                    <input
+                      className="flex-1 border rounded-lg px-3 py-2"
+                      placeholder="Write a comment..."
+                      value={commentDrafts[post.id] || ""}
+                      onChange={(e) => setCommentDrafts(prev => ({ ...prev, [post.id]: e.target.value }))}
+                    />
+                    <button className="px-4 py-2 rounded-full bg-[#fda4b8] text-white" onClick={() => submitComment(post.id)}>Post</button>
+                    <button className="px-4 py-2 rounded-full border border-[#ffd2dd]" onClick={() => setPosts((prev) => prev.map((p) => p.id === post.id ? { ...p, showCommentBox: false } : p))}>Hide</button>
                   </div>
+                </div>
+              )}
+              {(post.comments || []).length > 0 && (
+                <div className="mt-2 space-y-2">
+                  {post.comments.map((c) => (
+                    <div key={c.id} className="flex items-start gap-2">
+                      <img src={c.author?.avatarUrl || ""} alt={c.author?.name || ""} className="w-6 h-6 rounded-full object-cover border" />
+                      <div className="bg-[#fff5f7] border border-[#ffd2dd] rounded-xl px-3 py-2">
+                        <p className="text-sm font-semibold text-[#c0264a]">{c.author?.name || ""}</p>
+                        <p className="text-sm text-gray-700">{c.text}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </article>

@@ -100,46 +100,134 @@ export const communityAPI = {
       body: JSON.stringify(payload),
     });
   },
+  
+  // Alias for compatibility with existing components
   listCommunities: async () => {
     return apiRequest('/communities', {
       method: 'GET',
     });
   },
+  
+  getAllCommunities: async () => {
+    return apiRequest('/communities', {
+      method: 'GET',
+    });
+  },
+
+  getCommunityByName: async (name) => {
+    return apiRequest(`/communities/${name}`, {
+      method: 'GET',
+    });
+  },
+
   deleteCommunity: async (id) => {
     return apiRequest(`/communities/${id}`, {
       method: 'DELETE',
     });
   },
+ 
+  joinCommunity: async (communityId) => {
+    return apiRequest(`/communities/${communityId}/join`, {
+      method: 'POST',
+    });
+  },
 };
 
-// Community Posts API
+// Community Post API methods
 export const communityPostsAPI = {
-  listByCommunity: async (name) => {
-    return apiRequest(`/community-posts/${encodeURIComponent(name)}`, {
+  createPost: async ({ communityName, content, imageUrl }) => {
+    return apiRequest(`/community-posts`, {
+      method: 'POST',
+      body: JSON.stringify({ communityName, content, imageUrl })
+    });
+  },
+
+  getPosts: async (communityName) => {
+    return apiRequest(`/community-posts/${communityName}`, {
       method: 'GET',
     });
   },
-  create: async ({ communityName, content, imageUrl }) => {
-    return apiRequest('/community-posts', {
-      method: 'POST',
-      body: JSON.stringify({ communityName, content, imageUrl }),
-    });
-  },
-  react: async (id, type) => {
-    return apiRequest(`/community-posts/${id}/react`, {
+  
+  react: async (postId, type) => {
+    return apiRequest(`/community-posts/${postId}/react`, {
       method: 'PUT',
-      body: JSON.stringify({ type }),
+      body: JSON.stringify({ type })
     });
   },
-  comment: async (id, text) => {
-    return apiRequest(`/community-posts/${id}/comments`, {
+
+  addComment: async (postId, payload) => {
+    return apiRequest(`/community-posts/${postId}/comments`, {
       method: 'POST',
-      body: JSON.stringify({ text }),
+      body: JSON.stringify(payload),
     });
   },
 };
 
-// Notification API methods
+// AI Match API methods
+export const matchAPI = {
+  getMatches: async () => {
+    return apiRequest('/matches', {
+      method: 'GET',
+    });
+  },
+};
+
+// Request API methods
+export const requestAPI = {
+  sendRequest: async (recipientId) => {
+    return apiRequest('/requests/send', {
+      method: 'POST',
+      body: JSON.stringify({ recipientId }),
+    });
+  },
+
+  getRequests: async () => {
+    return apiRequest('/requests', {
+      method: 'GET',
+    });
+  },
+  
+  getSentRequests: async () => {
+    return apiRequest('/requests/sent', {
+      method: 'GET',
+    });
+  },
+
+  acceptRequest: async (requestId) => {
+    return apiRequest(`/requests/${requestId}/accept`, {
+      method: 'PUT',
+    });
+  },
+
+  rejectRequest: async (requestId) => {
+    return apiRequest(`/requests/${requestId}/reject`, {
+      method: 'PUT',
+    });
+  },
+  
+  cancelRequest: async (requestId) => {
+    return apiRequest(`/requests/${requestId}/cancel`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// Message API methods
+export const messageAPI = {
+  getMessages: async (userId) => {
+    return apiRequest(`/messages/${userId}`, {
+      method: 'GET',
+    });
+  },
+
+  sendMessage: async (recipientId, content) => {
+    return apiRequest('/messages', {
+      method: 'POST',
+      body: JSON.stringify({ recipientId, content }),
+    });
+  },
+};
+
 export const notificationAPI = {
   getNotifications: async () => {
     return apiRequest('/notifications', {
@@ -147,82 +235,9 @@ export const notificationAPI = {
     });
   },
 
-  markAsRead: async () => {
-    return apiRequest('/notifications/read', {
+  markAsRead: async (notificationId) => {
+    return apiRequest(`/notifications/${notificationId}/read`, {
       method: 'PUT',
     });
   },
 };
-
-// Message API methods
-export const messageAPI = {
-  getMessages: async (peerId) => {
-    return apiRequest(`/messages/${peerId}`, {
-      method: 'GET',
-    });
-  },
-
-  sendMessage: async (receiverId, text) => {
-    return apiRequest('/messages', {
-      method: 'POST',
-      body: JSON.stringify({ receiverId, text }),
-    });
-  },
-};
-
-// Request API methods
-export const requestAPI = {
-  sendRequest: async (toUserId, message) => {
-    return apiRequest('/requests', {
-      method: 'POST',
-      body: JSON.stringify({ toUserId, message }),
-    });
-  },
-
-  getRequestsMade: async () => {
-    return apiRequest('/requests/made', {
-      method: 'GET',
-    });
-  },
-
-  getRequestsReceived: async () => {
-    return apiRequest('/requests/received', {
-      method: 'GET',
-    });
-  },
-
-  updateRequestStatus: async (requestId, status) => {
-    return apiRequest(`/requests/${requestId}/status`, {
-      method: 'PUT',
-      body: JSON.stringify({ status }),
-    });
-  },
-
-  withdrawRequest: async (requestId) => {
-    return apiRequest(`/requests/${requestId}`, {
-      method: 'DELETE',
-    });
-  },
-};
-
-// Generic API methods for authenticated requests
-export const api = {
-  get: (endpoint) => apiRequest(endpoint, { method: 'GET' }),
-  post: (endpoint, data) =>
-    apiRequest(endpoint, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-  put: (endpoint, data) =>
-    apiRequest(endpoint, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    }),
-  delete: (endpoint) => apiRequest(endpoint, { method: 'DELETE' }),
-};
-
-export default api;
-
-
-
-

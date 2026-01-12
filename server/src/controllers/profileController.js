@@ -1,4 +1,5 @@
 const User = require('../models/User');
+// Embedding generation disabled: compute on-demand in matching
 
 exports.getProfile = async (req, res) => {
   try {
@@ -38,7 +39,7 @@ exports.updateProfile = async (req, res) => {
     if (community !== undefined) updateData.community = community;
     if (availabilitySlots !== undefined) updateData.availabilitySlots = availabilitySlots;
 
-    // Check if email is being changed and if it's already taken
+    
     if (email && email !== req.user.email) {
       const existingUser = await User.findOne({ email });
       if (existingUser) {
@@ -73,4 +74,3 @@ exports.updateProfile = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
-
