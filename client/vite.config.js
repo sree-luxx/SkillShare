@@ -9,7 +9,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://skill-share-lj7s.vercel.app',
+        target: 'http://localhost:5000',
         changeOrigin: true,
       },
     },
