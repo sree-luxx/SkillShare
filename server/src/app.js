@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+
 const authRoutes = require('./routes/authRoutes');
 const profileRoutes = require('./routes/profileRoutes');
 const requestRoutes = require('./routes/requestRoutes');
@@ -12,14 +13,27 @@ const matchRoutes = require('./routes/matchRoutes');
 
 const app = express();
 
-app.use(cors({
-    origin: "https://skill-share-delta.vercel.app", // frontend URL
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      const allowedOrigins = [
+        "https://skill-share-delta.vercel.app"
+      ];
+
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
-  }));
+  })
+);
 
 app.options("*", cors());
+
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
