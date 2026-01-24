@@ -3,13 +3,16 @@ import Sidebar from "../components/Sidebar";
 import Title from "../components/Title";
 import UserCard from "../components/UserCard";
 import ProfilePanel from "../components/ProfilePanel";
-import { matchAPI } from "../utils/api";
+import RequestModal from "../components/RequestModel";
+import { matchAPI, requestAPI } from "../utils/api";
+import toast from "react-hot-toast";
 import { Sparkles, Brain, Calculator, Database, ChevronDown, ChevronUp } from "lucide-react";
 
 const AIProfileMatcher = () => {
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [showRequestModal, setShowRequestModal] = useState(false);
   const [showExplanation, setShowExplanation] = useState(false);
 
   useEffect(() => {
@@ -39,6 +42,17 @@ const AIProfileMatcher = () => {
     };
     fetchMatches();
   }, []);
+
+  const handleSendRequest = async (message) => {
+    try {
+      if (!selectedUser?.id) throw new Error("No user selected");
+      await requestAPI.sendRequest(selectedUser.id, message);
+      toast.success(`Request sent to ${selectedUser.name} 🎉`);
+      setShowRequestModal(false);
+    } catch (error) {
+      toast.error(error.message || "Failed to send request");
+    }
+  };
 
   return (
     <div className="flex flex-col h-screen">
@@ -160,8 +174,15 @@ const AIProfileMatcher = () => {
       <ProfilePanel
         user={selectedUser}
         onClose={() => setSelectedUser(null)}
-        onRequestSwap={() => setSelectedUser(null)}
+        onRequestSwap={() => setShowRequestModal(true)}
       />
+      {showRequestModal && selectedUser && (
+        <RequestModal
+          userName={selectedUser.name}
+          onClose={() => setShowRequestModal(false)}
+          onSend={handleSendRequest}
+        />
+      )}
     </div>
   );
 };

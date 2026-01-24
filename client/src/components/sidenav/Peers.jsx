@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
 import UserCard from "../UserCard";
-import { userAPI } from "../../utils/api";
+import { userAPI, requestAPI } from "../../utils/api";
 import ProfilePanel from "../ProfilePanel";
+import RequestModal from "../RequestModel";
+import toast from "react-hot-toast";
 
 const Peers = () => {
   const [peers, setPeers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [showRequestModal, setShowRequestModal] = useState(false);
 
   useEffect(() => {
     const fetchPeers = async () => {
@@ -32,6 +35,17 @@ const Peers = () => {
     };
     fetchPeers();
   }, []);
+
+  const handleSendRequest = async (message) => {
+    try {
+      if (!selectedUser?.id) throw new Error("No user selected");
+      await requestAPI.sendRequest(selectedUser.id, message);
+      toast.success(`Request sent to ${selectedUser.name} 🎉`);
+      setShowRequestModal(false);
+    } catch (error) {
+      toast.error(error.message || "Failed to send request");
+    }
+  };
 
   return (
     <div className="min-h-screen">
@@ -74,8 +88,16 @@ const Peers = () => {
       <ProfilePanel
         user={selectedUser}
         onClose={() => setSelectedUser(null)}
-        onRequestSwap={() => setSelectedUser(null)}
+        onRequestSwap={() => setShowRequestModal(true)}
       />
+      
+      {showRequestModal && selectedUser && (
+        <RequestModal
+          userName={selectedUser.name}
+          onClose={() => setShowRequestModal(false)}
+          onSend={handleSendRequest}
+        />
+      )}
     </div>
   );
 };
