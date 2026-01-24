@@ -30,9 +30,16 @@ const ReceivedRequests = () => {
     fetchRequests();
   }, []);
 
-  const handleSendRequest = () => {
-    toast.success(`Request sent to ${selectedUser?.name} 🎉`);
-    setShowRequestModal(false);
+  const handleSendRequest = async (message) => {
+    try {
+      await requestAPI.sendRequest(selectedUser.id, message);
+      toast.success(`Request sent to ${selectedUser?.name} 🎉`);
+      setShowRequestModal(false);
+      fetchRequests();
+    } catch (error) {
+      console.error("Failed to send request:", error);
+      toast.error(error.message || "Failed to send request");
+    }
   };
 
   const handleDecision = async (requestId, decision) => {
